@@ -1,0 +1,210 @@
+﻿@page "/planning-sessions/{planningSessionId:guid}"
+@using Grafik.Components.Dialogs
+@using Grafik.Components.Dialogs.PlanningSessionDetails
+@using Grafik.Components.Shared
+@using Grafik.Data
+@using Microsoft.EntityFrameworkCore
+
+@rendermode InteractiveServer
+
+@inject DialogService DialogService
+@inject ApplicationDbContext DbContext
+
+@code {
+    [Parameter]
+    public Guid PlanningSessionId { get; set; }
+
+    public PlanningSession PlanningSession { get; set; }
+
+    EventConsole? console;
+    RadzenScheduler<Reservation>? scheduler;
+    RadzenDataGrid<Reservation>? dataGrid;
+
+    IQueryable<Reservation>? reservations;
+    IList<Reservation>? selectedReservations;
+
+    protected override Task OnInitializedAsync()
+    {
+        PlanningSession = DbContext.PlanningSessions.Single(x => x.Id == PlanningSessionId);
+        reservations = DbContext.Reservations.Where(r => r.PlanningSessionId == PlanningSessionId).AsQueryable();
+
+        return base.OnInitializedAsync();
+    }
+
+    private void OpenAddReservationDialog()
+    {
+        DialogService.OnClose += OnDialogClose;
+        DialogService.Open<AddReservationDialog>(
+            "Dodaj rezerwację",
+            new Dictionary<string, object> {
+                { "PlanningSession", PlanningSession }
+            });
+    }
+
+    private void OpenEditDialog(Reservation reservation)
+    {
+        DialogService.OnClose += OnDialogClose;
+        DialogService.Open<AddReservationDialog>(
+            "Edytuj sesję planowania",
+            new Dictionary<string, object>{
+                { "Reservation", reservation }
+            });
+    }
+
+    private void OpenDeleteDialog(Reservation reservation)
+    {
+        DialogService.OnClose += OnDialogClose;
+        DialogService.Open<DeleteReservationDialog>(
+            "Usuń rezerwację",
+            new Dictionary<string, object>{
+                { "Reservation", reservation } 
+            });
+    }
+
+    private void OnDialogClose(dynamic args)
+    {
+        scheduler!.Reload();
+        dataGrid!.Reload();
+
+        DialogService.OnClose -= (args) => { };
+    }
+
+    private void OnSlotRender(SchedulerSlotRenderEventArgs args)
+    {
+        if (PlanningSession == null)
+        {
+            return;
+        }
+
+        if (args.Start < PlanningSession.From || args.End > PlanningSession.To)
+        {
+            // Set background grey if slot is outside of PlanningSession range
+            var style = "background: #f5f5f5;";
+            style += ".input-wrap! > input[type=text] { background: #000; }";
+            args.Attributes["Style"] = style;
+        }
+    }
+
+    async Task OnSlotSelect(SchedulerSlotSelectEventArgs args)
+    {
+
+    }
+
+    async Task OnAppointmentSelect(SchedulerAppointmentSelectEventArgs<Reservation> args)
+    {
+    }
+
+    void OnAppointmentRender(SchedulerAppointmentRenderEventArgs<Reservation> args)
+    {
+    }
+
+    async Task OnAppointmentMove(SchedulerAppointmentMoveEventArgs args)
+    {
+    }
+}
+
+<PageTitle>Grafik</PageTitle>
+
+<h3>Sesja planingowa: @PlanningSession.From.ToShortDateString() - @PlanningSession.To.ToShortDateString() (@PlanningSession.Comment) </h3>
+
+<RadzenButton Click=@(args => OpenAddReservationDialog())
+              Text="Dodaj Rezerwację"
+              Icon="add_circle"
+              ButtonStyle="ButtonStyle.Primary" />
+
+<RadzenTabs TabPosition="TabPosition.Top" RenderMode="TabRenderMode.Client">
+    <Tabs>
+        <RadzenTabsItem Text="Lista">
+            <RadzenDataGrid AllowFiltering="true"
+                            AllowColumnResize="false"
+                            AllowAlternatingRows="false"
+                            FilterMode="FilterMode.Advanced"
+                            AllowSorting="true"
+                            PageSize="25"
+                            AllowPaging="true"
+                            PagerHorizontalAlign="HorizontalAlign.Justify"
+                            ShowPagingSummary="true"
+                            Data="@reservations"
+                            ColumnWidth="300px"
+                            LogicalFilterOperator="LogicalFilterOperator.Or"
+                            SelectionMode="DataGridSelectionMode.Single"
+                            @bind-Value=@selectedReservations
+                            @ref=@dataGrid>
+                <Columns>
+                    <RadzenDataGridColumn Property="@nameof(Reservation.From)"
+                                          FormatString="{0:d}"
+                                          Filterable="true"
+                                          Title="Od"
+                                          Frozen="true"
+                                          Width="80px"
+                                          TextAlign="TextAlign.Left" />
+                    <RadzenDataGridColumn Property="@nameof(Reservation.To)"
+                                          FormatString="{0:d}"
+                                          Filterable="true"
+                                          Title="Do"
+                                          Frozen="true"
+                                          Width="80px"
+                                          TextAlign="TextAlign.Left" />
+                    <RadzenDataGridColumn Property="@nameof(Reservation.Type)"
+                                          Filterable="true"
+                                          Title="Typ"
+                                          Frozen="true"
+                                          Width="80px"
+                                          TextAlign="TextAlign.Left" />
+                    <RadzenDataGridColumn Property="@nameof(Reservation.Comment)"
+                                          Filterable="true"
+                                          Title="Komentarz"
+                                          Frozen="true"
+                                          Width="80px"
+                                          TextAlign="TextAlign.Left" />
+                    <RadzenDataGridColumn Context="reservation"
+                                          Filterable="false"
+                                          Sortable="false"
+                                          TextAlign="TextAlign.Right"
+                                          Width="52px">
+                        <Template Context="reservation">
+                            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">
+                                <RadzenButton Icon="edit"
+                                              ButtonStyle="ButtonStyle.Light"
+                                              Variant="Variant.Flat"
+                                              Size="ButtonSize.Medium"
+                                              Click="@(args => OpenEditDialog(reservation))"
+                                              @onclick:stopPropagation="true">
+                                </RadzenButton>
+                                <RadzenButton Icon="delete"
+                                              ButtonStyle="ButtonStyle.Light"
+                                              Variant="Variant.Flat"
+                                              Size="ButtonSize.Medium"
+                                              Click="@(args => OpenDeleteDialog(reservation))"
+                                              @onclick:stopPropagation="true">
+                                </RadzenButton>
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenTabsItem>
+        <RadzenTabsItem Text="Kalendarz">
+            <RadzenScheduler @ref=@scheduler
+                             SlotRender=@OnSlotRender
+                             style="height: 780px;"
+                             TItem="Reservation"
+                             Data=@reservations
+                             StartProperty="From"
+                             EndProperty="To"
+                             TextProperty="Comment"
+                             SelectedIndex="3"
+                             SlotSelect=@OnSlotSelect
+                             AppointmentSelect=@OnAppointmentSelect
+                             AppointmentRender=@OnAppointmentRender
+                             AppointmentMove=@OnAppointmentMove>
+                <RadzenDayView />
+                <RadzenWeekView />
+                <RadzenMonthView />
+                <RadzenYearPlannerView MaxAppointmentsInSlot="5" />
+            </RadzenScheduler>
+        </RadzenTabsItem>
+    </Tabs>
+</RadzenTabs>
+
+<EventConsole @ref=@console />
