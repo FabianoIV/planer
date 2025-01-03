@@ -1,5 +1,69 @@
-﻿<h3>EditPlannerUserDialog</h3>
+﻿@using Grafik.Data
+
+@inject DialogService DialogService
+@inject ApplicationDbContext DbContext
+@inject NotificationService NotificationService
 
 @code {
+    [Parameter]
+    public PlannerUser? PlannerUser { get; set; }
 
+    void OnSubmit(PlannerUser model)
+    {
+        try
+        {
+            DbContext.PlannerUsers.Update(model);
+            DbContext.SaveChanges();
+
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Sukces",
+                    Detail = "Zaktualizowano użytkownika"
+                });
+        }
+        catch (Exception)
+        {
+            NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Błąd",
+                    Detail = "Nie udało się zaktualizować sesji planowania"
+                });
+        }
+
+        DialogService.Close(model);
+    }
+
+    void OnCancel()
+    {
+        DialogService.Close(null);
+    }
 }
+
+<RadzenTemplateForm TItem="PlannerUser" Data="@PlannerUser" Submit=@OnSubmit>
+    <RadzenStack Gap="1rem">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="Nazwa"
+                         Style="width: 6rem;" />
+            <RadzenTextBox Name="Name"
+                           @bind-Value="@PlannerUser.Name"
+                           ShowTime="true"
+                           Style="width: 12rem;" />
+        </RadzenStack>
+
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="Email"
+                         Style="width: 6rem;" />
+            <RadzenTextBox Name="Email"
+                           @bind-Value="@PlannerUser.Email"
+                           ShowTime="true"
+                           Style="width: 12rem;" />
+        </RadzenStack>
+
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">
+            <RadzenButton ButtonType="ButtonType.Submit" ButtonStyle="ButtonStyle.Success" Text="Edytuj" />
+            <RadzenButton ButtonType="ButtonType.Button" Text="Anuluj" Click="OnCancel" />
+        </RadzenStack>
+    </RadzenStack>
+</RadzenTemplateForm>
