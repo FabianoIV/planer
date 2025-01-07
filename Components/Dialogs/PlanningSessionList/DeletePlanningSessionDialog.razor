@@ -3,6 +3,7 @@
 @inject DialogService DialogService
 @inject ApplicationDbContext DbContext
 @inject NotificationService NotificationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 @code {
     [Parameter]
@@ -10,6 +11,15 @@
 
     void OnSubmit(PlanningSession model)
     {
+        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
+
+        if (authState?.User?.Identity?.IsAuthenticated == false)
+        {
+            SendAuthorizationMissingNotification();
+            DialogService.Close(null);
+            return;
+        }
+
         try
         {
             DbContext.PlanningSessions.Remove(model);
@@ -38,6 +48,16 @@
     void OnCancel()
     {
         DialogService.Close(null);
+    }
+
+    private void SendAuthorizationMissingNotification()
+    {
+        NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Warning,
+                Summary = "Brak autoryzacji",
+                Detail = "Nie jesteś zalogowany. Proszę się zalogować, aby kontynuować."
+            });
     }
 }
 

@@ -3,6 +3,7 @@
 @inject DialogService DialogService
 @inject ApplicationDbContext DbContext
 @inject NotificationService NotificationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 @code {
     private class QuarterlySessionOption
@@ -47,6 +48,15 @@
 
     void OnSubmit(PlanningSession model)
     {
+        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
+
+        if (authState?.User?.Identity?.IsAuthenticated == false)
+        {
+            SendAuthorizationMissingNotification();
+            DialogService.Close(null);
+            return;
+        }
+
         try
         {
             DbContext.PlanningSessions.Add(model);
@@ -63,6 +73,15 @@
 
     void OnQuaterSessionButtonClicked(QuarterlySessionOption o)
     {
+        var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
+
+        if (authState?.User?.Identity?.IsAuthenticated == false)
+        {
+            SendAuthorizationMissingNotification();
+            DialogService.Close(null);
+            return;
+        }
+
         planningSession.Comment = o.Name;
         planningSession.From = o.From;
         planningSession.To = o.To;
@@ -96,6 +115,16 @@
                 Severity = NotificationSeverity.Success,
                 Summary = "Sukces",
                 Detail = "Dodano sesję planowania"
+            });
+    }
+
+    private void SendAuthorizationMissingNotification()
+    {
+        NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Warning,
+                Summary = "Brak autoryzacji",
+                Detail = "Nie jesteś zalogowany. Proszę się zalogować, aby kontynuować."
             });
     }
 

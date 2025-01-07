@@ -6,13 +6,22 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 @code {
-    public PlannerUser PlannerUser { get; set; } = new PlannerUser()
-    {
-        Name = "",
-        Email = ""
-    };
+    [Parameter]
+    public required PlanningSession PlanningSession { get; set; }
 
-    void OnSubmit(PlannerUser model)
+    public ExcludedTime? ExcludedTime { get; set; }
+
+    protected override void OnInitialized()
+    {
+        ExcludedTime = new ExcludedTime
+            {
+                PlanningSessionId = PlanningSession.Id
+            };
+
+        base.OnInitialized();
+    }
+
+    void OnSubmit(ExcludedTime model)
     {
         var authState = AuthenticationStateProvider.GetAuthenticationStateAsync().Result;
 
@@ -26,10 +35,8 @@
         try
         {
             var now = DateTime.Now;
-            PlannerUser.Created = now;
-            PlannerUser.Updated = now;
 
-            DbContext.PlannerUsers.Add(model);
+            DbContext.ExcludedTime.Add(model);
             DbContext.SaveChanges();
 
             SendSucessNotification();
@@ -48,7 +55,7 @@
             {
                 Severity = NotificationSeverity.Error,
                 Summary = "Błąd",
-                Detail = "Nie udało się dodać użytkownika"
+                Detail = "Nie udało się utworzyć wykluczenia"
             });
     }
 
@@ -58,7 +65,7 @@
             {
                 Severity = NotificationSeverity.Success,
                 Summary = "Sukces",
-                Detail = "Dodano użytkownika"
+                Detail = "Dodano wykluczenie"
             });
     }
 
@@ -78,28 +85,40 @@
     }
 }
 
-<RadzenTemplateForm TItem="PlannerUser"
-                    Data="@PlannerUser"
+<RadzenTemplateForm TItem="ExcludedTime"
+                    Data="@ExcludedTime"
                     Submit=@OnSubmit>
     <RadzenStack Gap="1rem">
-
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
-            <RadzenLabel Text="Nazwa"
+            <RadzenLabel Text="Od"
                          Style="width: 6rem;" />
-            <RadzenTextBox Name="Name"
-                           @bind-Value="@PlannerUser.Name"
-                           Style="width: 15rem;" />
-            <RadzenRequiredValidator Component="Name" Text="Nazwa jest wymagana" />
+            <RadzenDatePicker @bind-Value="@ExcludedTime.From"
+                              Name="From"
+                              ShowTime="true"
+                              Style="width: 15rem;" />
+            <RadzenRequiredValidator Component="From"
+                                     Text="Data od jest wymagana" />
         </RadzenStack>
 
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
-            <RadzenLabel Text="Email"
+            <RadzenLabel Text="Do"
                          Style="width: 6rem;" />
-            <RadzenTextBox Name="Email"
-                           @bind-Value="@PlannerUser.Email"
+            <RadzenDatePicker @bind-Value="@ExcludedTime.To"
+                              Name="To"
+                              ShowTime="true"
+                              Style="width: 15rem;" />
+            <RadzenRequiredValidator Component="To"
+                                     Text="Data do jest wymagana" />
+        </RadzenStack>
+
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
+            <RadzenLabel Text="Powód"
+                         Style="width: 6rem;" />
+            <RadzenTextBox Name="Reason"
+                           @bind-Value="@ExcludedTime.Reason"
                            Style="width: 15rem;" />
-            <RadzenRequiredValidator Component="Email" Text="Email jest wymagany" />
-            <RadzenEmailValidator Component="Email" Text="Nipoprawny adres email" />
+            <RadzenRequiredValidator Component="Reason"
+                                     Text="Powód jest wymagany" />
         </RadzenStack>
 
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">

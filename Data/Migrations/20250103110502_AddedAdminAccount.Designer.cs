@@ -4,6 +4,7 @@ using Grafik.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Grafik.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250103110502_AddedAdminAccount")]
+    partial class AddedAdminAccount
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -87,31 +90,6 @@ namespace Grafik.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("Grafik.Data.ExcludedTime", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("From")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("PlanningSessionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Reason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("To")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlanningSessionId");
-
-                    b.ToTable("ExcludedTime");
-                });
-
             modelBuilder.Entity("Grafik.Data.PlannerUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -169,9 +147,6 @@ namespace Grafik.Migrations
                     b.Property<DateTime>("From")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("PlannerUserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid>("PlanningSessionId")
                         .HasColumnType("uniqueidentifier");
 
@@ -185,8 +160,6 @@ namespace Grafik.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PlannerUserId");
 
                     b.HasIndex("PlanningSessionId");
 
@@ -326,32 +299,13 @@ namespace Grafik.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Grafik.Data.ExcludedTime", b =>
-                {
-                    b.HasOne("Grafik.Data.PlanningSession", "PlanningSession")
-                        .WithMany()
-                        .HasForeignKey("PlanningSessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PlanningSession");
-                });
-
             modelBuilder.Entity("Grafik.Data.Reservation", b =>
                 {
-                    b.HasOne("Grafik.Data.PlannerUser", "PlannerUser")
-                        .WithMany()
-                        .HasForeignKey("PlannerUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Grafik.Data.PlanningSession", null)
                         .WithMany("Reservations")
                         .HasForeignKey("PlanningSessionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("PlannerUser");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
